@@ -1,17 +1,20 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import '../models/lecture_model.dart';
-import '../utils/helpers.dart';
 
 class LectureCard extends StatelessWidget {
   final LectureModel lecture;
   final VoidCallback onTap;
   final VoidCallback onToggleFavorite;
+  final VoidCallback onMoreOptions;
 
   const LectureCard({
     super.key,
     required this.lecture,
     required this.onTap,
     required this.onToggleFavorite,
+    required this.onMoreOptions,
   });
 
   @override
@@ -31,19 +34,7 @@ class LectureCard extends StatelessWidget {
               Row(
                 children: [
                   // Status Icon
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getStatusIcon(),
-                      size: 16,
-                      color: _getStatusColor(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+
                   // Category
                   if (lecture.category != null) ...[
                     Container(
@@ -65,20 +56,19 @@ class LectureCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                   ],
+
                   const Spacer(),
-                  // Favorite Button
                   IconButton(
-                    onPressed: onToggleFavorite,
-                    icon: Icon(
-                      lecture.isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: lecture.isFavorite ? Colors.red : Colors.grey,
+                    onPressed: onMoreOptions,
+                    icon: const Icon(
+                      Icons.more_vert,
                       size: 20,
+                      color: Colors.grey,
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
+                  // Favorite Button
                 ],
               ),
 
@@ -129,6 +119,19 @@ class LectureCard extends StatelessWidget {
                     Icons.storage_outlined,
                     lecture.formattedFileSize,
                   ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: onToggleFavorite,
+                    icon: Icon(
+                      lecture.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: lecture.isFavorite ? Colors.red : Colors.grey,
+                      size: 20,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
 
@@ -175,19 +178,6 @@ class LectureCard extends StatelessWidget {
         return Colors.green;
       default:
         return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon() {
-    switch (lecture.status) {
-      case 'recording':
-        return Icons.mic;
-      case 'processing':
-        return Icons.autorenew;
-      case 'completed':
-        return Icons.check_circle;
-      default:
-        return Icons.error;
     }
   }
 }

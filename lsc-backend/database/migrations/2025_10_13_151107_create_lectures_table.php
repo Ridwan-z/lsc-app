@@ -17,11 +17,11 @@ return new class extends Migration
             $table->char('category_id', 36)->nullable();
             $table->string('title', 255);
             $table->text('description')->nullable();
-            $table->text('audio_url');
+            $table->text('audio_url')->nullable();
             $table->string('audio_format', 10)->default('mp3');
             $table->bigInteger('file_size')->default(0);
             $table->integer('duration')->default(0); // seconds
-            $table->date('recording_date');
+            $table->date('recording_date')->nullable();
             $table->enum('recording_quality', ['auto', 'standard', 'high'])->default('auto');
             $table->enum('status', ['recording', 'processing', 'completed', 'failed'])->default('processing');
             $table->integer('processing_progress')->default(0); // 0-100

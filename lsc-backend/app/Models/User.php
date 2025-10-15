@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory;
+    use HasApiTokens, HasFactory, HasUuids;
 
     protected $fillable = [
         'id',
@@ -38,6 +38,9 @@ class User extends Authenticatable
         'storage_limit' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    protected $keyType = 'string'; // ✅ penting: ID bertipe string
+    public $incrementing = false; // ✅ penting: non-auto-increment
 
     // Relationships
     public function categories()

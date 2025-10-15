@@ -27,14 +27,60 @@ class LectureController extends Controller
     /**
      * Store new lecture
      */
-    public function store(Request $request)
+    public function create(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,category_id',
-            'audio_file' => 'required|file|mimes:mp3,m4a,wav|max:512000', // Max 500MB
             'recording_date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Create lecture with status 'recording' (menunggu audio)
+        $lecture = Lecture::create([
+            'user_id' => $request->user()->id,
+            'category_id' => $request->category_id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'audio_url' => '', // Temporary empty value
+            'recording_date' => $request->recording_date,
+            'status' => 'recording', // Status recording = belum ada audio
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lecture created successfully. Please upload audio file.',
+            'data' => $lecture
+        ], 201);
+    }
+
+    /**
+     * Step 2: Upload audio to existing lecture
+     */
+    public function uploadAudio(Request $request, $lectureId)
+    {
+        $lecture = Lecture::where('lecture_id', $lectureId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        // Cek apakah lecture sudah punya audio
+        if ($lecture->status !== 'recording') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This lecture already has an audio file'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'audio_file' => 'required|file|mimes:mp3,m4a,wav|max:512000', // Max 500MB
             'recording_quality' => 'nullable|in:auto,standard,high',
         ]);
 
@@ -62,17 +108,12 @@ class LectureController extends Controller
         // Get audio duration (you'll need getID3 library for this)
         $duration = 0; // Placeholder
 
-        // Create lecture
-        $lecture = Lecture::create([
-            'user_id' => $request->user()->id,
-            'category_id' => $request->category_id,
-            'title' => $request->title,
-            'description' => $request->description,
+        // Update lecture with audio information
+        $lecture->update([
             'audio_url' => $audioUrl,
             'audio_format' => $request->file('audio_file')->extension(),
             'file_size' => $fileSize,
             'duration' => $duration,
-            'recording_date' => $request->recording_date,
             'recording_quality' => $request->recording_quality ?? 'auto',
             'status' => 'processing',
             'processing_progress' => 0,
@@ -86,11 +127,10 @@ class LectureController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Lecture uploaded successfully',
-            'data' => $lecture
-        ], 201);
+            'message' => 'Audio uploaded successfully',
+            'data' => $lecture->fresh()
+        ], 200);
     }
-
     /**
      * Get specific lecture
      */

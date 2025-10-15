@@ -12,10 +12,12 @@ import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/recording/recording_screen.dart'; // ADD THIS IMPORT
 import 'utils/constants.dart';
+import 'providers/category_provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await initializeDateFormatting('id_ID', null);
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -43,6 +45,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LectureProvider()),
         ChangeNotifierProvider(create: (_) => RecordingProvider()), // ADD THIS
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
       ],
       child: MaterialApp(
         title: 'LSC - Lecture Speed Controller',
@@ -57,7 +60,8 @@ class MyApp extends StatelessWidget {
           Constants.loginRoute: (context) => const LoginScreen(),
           Constants.registerRoute: (context) => const RegisterScreen(),
           Constants.homeRoute: (context) => const HomeScreen(),
-          Constants.recordingRoute: (context) => const RecordingScreen(), // ADD THIS
+          Constants.recordingRoute: (context) =>
+              const RecordingScreen(), // ADD THIS
         },
       ),
     );

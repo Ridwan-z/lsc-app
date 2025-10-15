@@ -53,6 +53,7 @@ class AuthProvider with ChangeNotifier {
 
     if (result['success'] == true) {
       _user = result['data']['user'];
+      print("user: ${_user.toString()}");
       _isAuthenticated = true;
     }
 

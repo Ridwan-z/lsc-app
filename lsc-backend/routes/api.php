@@ -31,7 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lectures
     Route::get('/lectures', [LectureController::class, 'index']);
-    Route::post('/lectures', [LectureController::class, 'store']);
+    Route::post('/lectures', [LectureController::class, 'create']);
+    Route::post('/lectures/{lectureId}/upload-audio', [LectureController::class, 'uploadAudio']);
     Route::get('/lectures/{id}', [LectureController::class, 'show']);
     Route::put('/lectures/{id}', [LectureController::class, 'update']);
     Route::delete('/lectures/{id}', [LectureController::class, 'destroy']);

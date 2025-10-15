@@ -157,11 +157,21 @@ class LectureModel {
   }
 
   String get formattedDate {
-    return DateFormat('dd MMM yyyy', 'id_ID').format(recordingDate);
+    try {
+      return DateFormat('dd MMM yyyy', 'id_ID').format(recordingDate);
+    } catch (e) {
+      // Fallback ke format default jika locale error
+      return DateFormat('dd MMM yyyy').format(recordingDate);
+    }
   }
 
   String get formattedDateTime {
-    return DateFormat('dd MMM yyyy HH:mm', 'id_ID').format(recordingDate);
+    try {
+      return DateFormat('dd MMM yyyy HH:mm', 'id_ID').format(recordingDate);
+    } catch (e) {
+      // Fallback ke format default jika locale error
+      return DateFormat('dd MMM yyyy HH:mm').format(recordingDate);
+    }
   }
 
   String get formattedFileSize {

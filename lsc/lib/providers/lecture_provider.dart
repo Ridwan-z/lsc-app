@@ -297,6 +297,38 @@ class LectureProvider with ChangeNotifier {
     }
   }
 
+  // Tambahkan method ini di LectureProvider class
+  Future<void> createLecture({
+    required String title,
+    String? description,
+    String? categoryId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post('/lectures', {
+        'title': title,
+        'description': description,
+        'category_id': categoryId,
+        'recording_date': DateTime.now().toIso8601String(),
+      }, requiresAuth: true);
+
+      if (response['success'] == true) {
+        final newLecture = LectureModel.fromJson(response['data']);
+        _lectures.insert(0, newLecture); // Add to beginning of list
+        notifyListeners();
+      } else {
+        throw response['message'] ?? 'Failed to create lecture';
+      }
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Filter lectures by category
   List<LectureModel> getLecturesByCategory(String? categoryId) {
     if (categoryId == null) return _lectures;

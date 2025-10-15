@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../providers/recording_provider.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/waveform_painter.dart';
-import '../../widgets/custom_button.dart';
 import '../../widgets/recording_timer.dart';
 
 class RecordingScreen extends StatefulWidget {

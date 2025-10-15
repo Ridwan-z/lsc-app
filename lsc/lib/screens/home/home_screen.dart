@@ -3,12 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/lecture_provider.dart';
+import '../../providers/category_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/lecture_card.dart';
 import '../../widgets/category_chip.dart';
 import '../../widgets/loading_widget.dart';
 import '../../models/lecture_model.dart';
+import '../../models/category_model.dart';
+import '../lecture/add_lecture_dialog.dart';
+import '../category/category_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,9 +38,14 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       listen: false,
     );
+    final categoryProvider = Provider.of<CategoryProvider>(
+      context,
+      listen: false,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       lectureProvider.loadLectures(refresh: true);
-      lectureProvider.loadCategories();
+      categoryProvider.loadCategories();
     });
   }
 
@@ -53,15 +62,259 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Di dalam _HomeScreenState class, update method _onRecordPressed:
   void _onRecordPressed() {
-    Navigator.of(context).pushNamed(Constants.recordingRoute);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: const AddLectureDialog(),
+      ),
+    );
+  }
+
+  void _showProfileMenu() {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final Offset buttonTopRight = button.localToGlobal(
+      button.size.topRight(Offset.zero),
+      ancestor: overlay,
+    );
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        buttonTopRight.dx,
+        buttonTopRight.dy,
+        buttonTopRight.dx,
+        buttonTopRight.dy,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'profile',
+          child: Row(
+            children: [
+              Icon(Icons.person_outline, color: Colors.grey.shade700),
+              const SizedBox(width: 12),
+              const Text('Profile'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.grey.shade700),
+              const SizedBox(width: 12),
+              const Text('Logout'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value != null) {
+        _handleProfileMenuSelection(value);
+      }
+    });
+  }
+
+  void _handleProfileMenuSelection(String value) {
+    switch (value) {
+      case 'profile':
+        _showProfileDialog();
+        break;
+      case 'logout':
+        _showLogoutConfirmation();
+        break;
+    }
+  }
+
+  void _showProfileDialog() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2C5F77),
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF87CEEB).withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF87CEEB),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    size: 40,
+                    color: Color(0xFF87CEEB),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildProfileInfo('Nama', user?['name'] ?? 'User'),
+              const SizedBox(height: 12),
+              _buildProfileInfo('Email', user?['email'] ?? '-'),
+              const SizedBox(height: 12),
+              if (user?['institution'] != null) ...[
+                _buildProfileInfo('Universitas', user!['institution']),
+                const SizedBox(height: 12),
+              ],
+              if (user?['major'] != null) ...[
+                _buildProfileInfo('Jurusan', user!['major']),
+                const SizedBox(height: 12),
+              ],
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF87CEEB).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Status Langganan',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C5F77),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user?['subscription_type'] == 'premium'
+                          ? 'Premium'
+                          : 'Free',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: user?['subscription_type'] == 'premium'
+                            ? const Color(0xFFFFD700)
+                            : const Color(0xFF87CEEB),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value:
+                          (user?['storage_used'] ?? 0) /
+                          (user?['storage_limit'] ?? 1),
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF87CEEB),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${Helpers.formatFileSize(user?['storage_used'] ?? 0)} / ${Helpers.formatFileSize(user?['storage_limit'] ?? 1073741824)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileInfo(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Color(0xFF2C5F77),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
+              await authProvider.logout();
+              if (!mounted) return;
+              Navigator.of(context).pushReplacementNamed(Constants.loginRoute);
+              Helpers.showSnackBar(context, 'Logout berhasil!');
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToCategoriesScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CategoriesScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final lectureProvider = Provider.of<LectureProvider>(context);
+    final categoryProvider = Provider.of<CategoryProvider>(context);
     final user = authProvider.user;
 
     final filteredLectures = _getFilteredLectures(lectureProvider);
@@ -72,53 +325,12 @@ class _HomeScreenState extends State<HomeScreen> {
         controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            // App Bar
-            SliverAppBar(
-              backgroundColor: const Color(0xFF87CEEB),
-              elevation: 0,
-              floating: true,
-              snap: true,
-              title: FadeInDown(
-                child: const Text(
-                  'Lecture Speed Controller',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  onPressed: () {
-                    // TODO: Implement search
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: Colors.white,
-                  ),
-                  onPressed: () {
-                    // TODO: Implement notifications
-                  },
-                ),
-              ],
-            ),
-
-            // Header Section
             SliverToBoxAdapter(
               child: _buildHeaderSection(user, lectureProvider),
             ),
-
-            // Categories Section
-            if (lectureProvider.categories.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _buildCategoriesSection(lectureProvider),
-              ),
-
-            // Tab Bar
+            SliverToBoxAdapter(
+              child: _buildCategoriesSection(categoryProvider),
+            ),
             SliverToBoxAdapter(child: _buildTabBar()),
           ];
         },
@@ -129,9 +341,9 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF87CEEB),
         foregroundColor: Colors.white,
         elevation: 4,
-        child: const Icon(Icons.mic, size: 28),
+        child: const Icon(Icons.add, size: 28),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -143,8 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
       color: const Color(0xFF87CEEB),
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          // Welcome Section
+          const SizedBox(height: 50),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -178,23 +389,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 FadeInRight(
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(25),
+                  child: GestureDetector(
+                    onTap: _showProfileMenu,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white),
                     ),
-                    child: const Icon(Icons.person, color: Colors.white),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 30),
-
-          // Statistics Cards
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -223,7 +434,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 30),
         ],
       ),
@@ -283,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoriesSection(LectureProvider lectureProvider) {
+  Widget _buildCategoriesSection(CategoryProvider categoryProvider) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -312,7 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   isSelected: _selectedCategoryId == null,
                   onTap: () => setState(() => _selectedCategoryId = null),
                 ),
-                ...lectureProvider.categories.map((category) {
+                ...categoryProvider.categories.map((category) {
                   return Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: CategoryChip(
@@ -331,6 +541,45 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: GestureDetector(
+                    onTap: _navigateToCategoriesScreen,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF87CEEB).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF87CEEB),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 16,
+                            color: const Color(0xFF87CEEB),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Tambah',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF87CEEB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -348,11 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(
             height: 50,
             child: Row(
-              children: [
-                _buildTab('Semua', 0),
-                _buildTab('Favorit', 1),
-                _buildTab('Terbaru', 2),
-              ],
+              children: [_buildTab('Semua', 0), _buildTab('Favorit', 1)],
             ),
           ),
         ],
@@ -426,11 +671,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: LectureCard(
               lecture: lecture,
               onTap: () {
-                // TODO: Navigate to lecture detail
                 Helpers.showSnackBar(context, 'Membuka: ${lecture.title}');
               },
               onToggleFavorite: () {
                 lectureProvider.toggleFavorite(lecture.lectureId);
+              },
+              onMoreOptions: () {
+                Helpers.showSnackBar(
+                  context,
+                  'Opsi lainnya untuk: ${lecture.title}',
+                );
               },
             ),
           );
@@ -459,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Belum Ada Rekaman',
+            'Belum Ada Perkuliahan',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -470,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Mulai rekam kuliah pertama Anda dengan menekan tombol mic di bawah',
+              'Tambahkan perkuliahan yang ingin anda rekam dulu dengan menekan tombol dibawah',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
@@ -483,7 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
             ),
-            child: const Text('Rekam Sekarang'),
+            child: const Text('Buat Sekarang'),
           ),
         ],
       ),
@@ -493,18 +743,13 @@ class _HomeScreenState extends State<HomeScreen> {
   List<LectureModel> _getFilteredLectures(LectureProvider lectureProvider) {
     List<LectureModel> lectures = lectureProvider.lectures;
 
-    // Apply category filter
     if (_selectedCategoryId != null) {
       lectures = lectureProvider.getLecturesByCategory(_selectedCategoryId);
     }
 
-    // Apply tab filter
     switch (_currentTab) {
-      case 1: // Favorites
+      case 1:
         lectures = lectures.where((lecture) => lecture.isFavorite).toList();
-        break;
-      case 2: // Recent
-        lectures = lectureProvider.recentLectures;
         break;
     }
 
